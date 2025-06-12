@@ -10,12 +10,7 @@ from tuneThreshold import tuneThresholdfromScore
 from SpeakerNet import SpeakerNet
 from DatasetLoader import get_data_loader
 
-try:
-    import nsml
-    from nsml import DATASET_PATH
-except:
-    DATASET_PATH = ''
-    pass;
+# NSML support has been removed. Training now runs on a local environment.
 
 parser = argparse.ArgumentParser(description = "SpeakerNet");
 
@@ -23,6 +18,7 @@ parser = argparse.ArgumentParser(description = "SpeakerNet");
 parser.add_argument('--max_frames', type=int, default=200,  help='Input length to the network');
 parser.add_argument('--batch_size', type=int, default=200,  help='Batch size');
 parser.add_argument('--nDataLoaderThread', type=int, default=10, help='Number of loader threads');
+parser.add_argument('--save_path', type=str, default='exp', help='Directory to save models and results');
 
 ## Training details
 parser.add_argument('--test_interval', type=int, default=1, help='Test and save every [test_interval] epochs');
@@ -51,21 +47,11 @@ parser.add_argument('--nOut', type=int,         default=512,    help='Embedding 
 
 args = parser.parse_args();
 
-# ==================== INITIALISE LINE NOTIFY ====================
+# ==================== INITIAL SETUP ====================
 
-if ("nsml" in sys.modules):
-    args.train_path     = os.path.join(DATASET_PATH[0],'train/voxceleb2')
-    args.test_path      = os.path.join(DATASET_PATH[0],'train/voxceleb1')
-    args.train_list     = os.path.join(DATASET_PATH[0],'train/train_list.txt')
-    args.test_list      = os.path.join(DATASET_PATH[0],'train/test_list.txt')
-    args.musan_path     = os.path.join(DATASET_PATH[1],'train')
-    model_save_path     = "exps/model";
-    result_save_path    = "exps/results"
-    feat_save_path      = "feat"
-else:
-    model_save_path     = args.save_path+"/model"
-    result_save_path    = args.save_path+"/result"
-    feat_save_path      = ""
+model_save_path  = os.path.join(args.save_path, "model")
+result_save_path = os.path.join(args.save_path, "result")
+feat_save_path   = ""
 
 # ==================== MAKE DIRECTORIES ====================
 
@@ -79,10 +65,7 @@ else:
 
 # ==================== LOAD MODEL ====================
 
-s = SpeakerNet(**vars(args));
-
-if("nsml" in sys.modules):
-    nsml.bind(save=s.saveParameters, load=s.loadParameters);
+s = SpeakerNet(**vars(args))
 if(args.initial_model != ""):
     s.loadParameters(args.initial_model);
     print("Model %s loaded!"%args.initial_model);
@@ -114,18 +97,6 @@ while(1):
 
         min_eer.append(result[1])
         s.current_EER = result[1]
-
-        if ("nsml" in sys.modules):
-            training_report = {};
-            training_report["summary"] = True;
-            training_report["epoch"] = it;
-            training_report["step"] = it;
-            training_report["train_loss"] = loss.item();
-            training_report["val_eer"] = result[1];
-            training_report["min_eer"] = min(min_eer);
-            
-            nsml.report(**training_report);
-            nsml.save(it)
     
     else:
         print(time.strftime("%Y-%m-%d %H:%M:%S"), "TEER %2.2f, TLOSS %f"%( traineer, loss));

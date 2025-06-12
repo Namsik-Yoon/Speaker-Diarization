@@ -4,4 +4,6 @@ ID=$1
 DATASET=vox
 SESSION_NUM=$2
 
-nsml model ls $ID/${DATASET}/${SESSION_NUM}
+echo "This script previously listed models on NSML." \
+     "Download models manually as needed."
+
